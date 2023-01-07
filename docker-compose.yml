@@ -1,0 +1,19 @@
+version: '3.5'
+
+x-log: &logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"   # максимальный размер одного файла
+      max-file: "10"    # максимальное колличество файлов
+
+services:
+  app:
+    build: .
+    restart: ${RESTART_POLICY:-always}
+    container_name: app-${COMPOSE_PROJECT_NAME:-dash}
+    ports:
+      - ${PORT:-8052}:8080
+    <<: *logging
+    volumes:
+      - ./app:/usr/src/app/
