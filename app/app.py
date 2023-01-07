@@ -69,13 +69,17 @@ f_ptw_31016 = interp1d(x, y, 'cubic', fill_value='extrapolate')
 
 
 def clean_temp_folders():
+
+    files_dont_del = ['.gitkeep']
     os.listdir('temp')
     for f in os.listdir('temp'):
-        os.remove('temp/'+f)
+        if f not in files_dont_del:
+            os.remove('temp/'+f)
         
     os.listdir('assets')
     for f in os.listdir('assets'):
-        os.remove('assets/'+f)
+        if f not in files_dont_del:
+            os.remove('assets/'+f)
 
 
 # In[4]:
