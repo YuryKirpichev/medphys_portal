@@ -13,7 +13,7 @@ services:
     restart: ${RESTART_POLICY:-always}
     container_name: app-${COMPOSE_PROJECT_NAME:-dash}
     ports:
-      - ${PORT:-8052}:8080
+      - 8055:8055
     <<: *logging
     volumes:
       - ./app:/usr/src/app/
