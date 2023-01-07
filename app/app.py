@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import io
 import plotly.graph_objects as go
 import numpy as np
@@ -39,11 +33,6 @@ from datetime import datetime
 import os
 import glob
 
-
-# In[2]:
-
-
-#TPR 483 DATA
 trs_ptw_31016 = dict({
     10:   1,
     8:    1, 
@@ -65,9 +54,6 @@ y = list(trs_ptw_31016.values())
 f_ptw_31016 = interp1d(x, y, 'cubic', fill_value='extrapolate')
 
 
-# In[3]:
-
-
 def clean_temp_folders():
 
     files_dont_del = ['.gitkeep']
@@ -80,9 +66,6 @@ def clean_temp_folders():
     for f in os.listdir('assets'):
         if f not in files_dont_del:
             os.remove('assets/'+f)
-
-
-# In[4]:
 
 
 def plot_plotly_from_dicom(image):
@@ -126,9 +109,6 @@ def plot_plotly_from_dicom(image):
         }
     )
     return fig
-
-
-# In[5]:
 
 
 def number_of_beams_calculation(file):
@@ -206,11 +186,6 @@ def calculafe_filed_size_varian(file, beam_number, control_point, number_of_leaf
     
             
     return size
-
-
-# In[6]:
-
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 # creating a web server instance
@@ -221,10 +196,6 @@ app = dash.Dash(__name__,
                 server=server,
                 external_stylesheets=external_stylesheets,
                 title='Small fileds calculator', )
-
-
-# In[7]:
-
 
 style_passed={
     'margin-bottom': 5,
@@ -274,15 +245,11 @@ style_column = {
 
 test_types = ['PicketFence', 'Star', 'WL', 'CatPhan', 'EffectiveSmallFields']
 
-
-# In[8]:
-
-
 test_options_dict = dict({
     'EffectiveSmallFields': html.Div([
                                 html.Strong('Chamber: ', style=style_text),
                                 dcc.Dropdown(
-                                    id='Chamber',
+                                    id='chamber-id',
                                     options=['PinPoint 3D 31016'],
                                     value='PinPoint 3D 31016',
                                     style=style_drop_down),
@@ -294,7 +261,7 @@ test_options_dict = dict({
                                     style=style),
                                 html.Strong('Last leaf: ', id='show-cutoff-text', style=style_text),
                                 dcc.Input(
-                                    id='last leaf',
+                                    id='last_leaf',
                                     type="number",
                                     value=60,
                                     style=style)]),
@@ -328,14 +295,11 @@ test_options_dict = dict({
                   style=style_drop_down)
     ],  
         style={'display': 'inline-block',  'marginTop': 0, 'height': '30px',}),
-    'WL': html.Div([html.P('WL test options')]),
-    'CatPhan': html.Div([html.P('CatPhan test options')])
+    'WL': html.Div([html.P('WL test under development')]),
+    'CatPhan': html.Div([html.P('CatPhan test under development')])
 })
 
-
-# In[9]:
-
-
+#function to analyse picket fence test
 def analyze_picket_fence(files, list_of_names, implementation, tollerance_pf):
     output = []
     clean_temp_folders()
@@ -383,10 +347,7 @@ def analyze_picket_fence(files, list_of_names, implementation, tollerance_pf):
                 ], style = {'display': 'inline-block'}), style = {'display': 'inline-block'}))
     return output
 
-
-# In[10]:
-
-
+#function to analyse star test
 def analyze_star(files, list_of_names, implementation, radius, tolerance):
     output = []
     ff_files = []
@@ -436,14 +397,86 @@ def analyze_star(files, list_of_names, implementation, radius, tolerance):
     
     return output
 
+#function to analyse effective field size
+def effective_field_size_calculation(files, list_of_names, chamber, leaf_min, leaf_max):
+    for i in range(len(files)):
+        file = files[i]
+        filename = list_of_names[i]
+        text = []
+        leafs = range(leaf_min, leaf_max)
+        file_type = file.Modality
+        if file_type == 'RTPLAN':
+            try:
+                plan_name = file.RTPlanLabel
+            except Exception:
+                plan_name = '-' 
+        
+            try:
+                plan_patient_name = file.PatientName 
+            except Exception:
+                plan_patient_name ='-'
+    
+            try:    
+                plan_date = file.InstanceCreationDate  
+            except Exception:
+                plan_date = '-'
+        
+            try:
+                plan_time = file.InstanceCreationTime
+            except Exception:
+                plan_time = '-'
+    
+            try:
+                plan_vendor = file.Manufacturer
+            except Exception:    
+                plan_vendor = '-'
+    
+            if plan_vendor == 'Varian Medical Systems':
+                number_of_beams = number_of_beams_calculation(file)
+                for n in range(number_of_beams):
+                    plan_machime_name = file.BeamSequence[n].TreatmentMachineName  
+                    plan_beam_name = file.BeamSequence[n].BeamName
+                    plan_beam_type = file.BeamSequence[n].BeamType
+                    #print()
+            
+                    if hasattr(file.FractionGroupSequence[0].ReferencedBeamSequence[n], 'BeamDose'):
+                        text.append(str('%s beam name: %s ' %(plan_beam_type, plan_beam_name)))
+                        text.append(html.Br())
+                
+                        plan_beam_dose = file.FractionGroupSequence[0].ReferencedBeamSequence[n].BeamDose
+                        plan_beam_meterset = file.FractionGroupSequence[0].ReferencedBeamSequence[n].BeamMeterset
+            
+                        number_of_leafs = file.BeamSequence[n].BeamLimitingDeviceSequence[2].NumberOfLeafJawPairs
 
-# In[ ]:
-
-
-
-
-
-# In[ ]:
+                        number_of_control_points = file.BeamSequence[n].NumberOfControlPoints
+                        size_control_point = calculafe_filed_size_varian(file, n, number_of_control_points, number_of_leafs, leafs =leafs)
+                
+                         
+                        #calculate weighted field size
+                        size_control_point['weighted_size'] = size_control_point['mean_size']*size_control_point['weigh']
+                
+                        mean_field_size = size_control_point['weighted_size'].sum()
+                        text.append(str('mean field size corrected for the weights is: %s, mm^2' % mean_field_size))
+                        text.append(html.Br())
+                        text.append(str('effective square filed size is %s, cm' % sqrt(mean_field_size/100)))
+                        text.append(html.Br())
+                        text.append(str('correction factor for PTW PinPoint 3D 31016 – %s ' %f_ptw_31016(sqrt(mean_field_size/100))))
+                        text.append(html.Br())
+                
+                    else:
+                        text.append(str('%s beam name: %s has no dose' %(plan_beam_type, plan_beam_name)))
+                        text.append(html.Br())
+                    
+    export_div = html.Div([
+        html.P('The %s was successfully uploaded ' %filename),
+        html.P('Modality is %s.' %file.Modality),
+        html.P('Patient id is %s.' %file.PatientID),
+        html.P('Plan  %s has beams :%s ' %(plan_name, number_of_beams)),
+        html.P(text),
+        html.Hr(),  # horizontal line
+        ])
+    
+    return export_div
 
 
 # creating the app layout
@@ -511,6 +544,7 @@ app.layout = html.Div([
     
     html.Div(id='output-data-upload-pf'),
     html.Div(id='output-data-upload-star'),
+    html.Div(id='output-data-upload-eff-fs'),
 ])
 
 def parse_contents(contents, filename, date):
@@ -526,6 +560,34 @@ def parse_contents(contents, filename, date):
 def change_implementation(implementation_slt):
     return test_options_dict[implementation_slt]
 
+#effective field size
+@app.callback(Output('output-data-upload-eff-fs', 'children'),
+            [Input('implementation','value'),
+             Input('first_leaf','value'),
+             Input('last_leaf','value'),
+             Input('upload-data','contents')],
+            State('upload-data','filename'),
+            State('upload-data','last_modified'))
+def update_output_fs(implementation, leaf_first, leaf_last,list_of_contents, list_of_names, list_of_dates):
+    if list_of_contents is not None:
+        output = []
+        try:
+            files = [
+                parse_contents(c, n, d) for c, n, d in
+                zip(list_of_contents, list_of_names, list_of_dates)]
+        except Exception as e:
+            print(e)
+            return html.P('Error in uploading file ' + str(e))
+        
+        amount_of_files = len(files)
+        output.append(html.P('%s files was uploaded successfully' %amount_of_files))
+
+        if implementation == 'EffectiveSmallFields':
+            chamber = 'PinPoint'
+
+            output.append(effective_field_size_calculation(files, list_of_names, chamber, leaf_first, leaf_last))
+        
+        return output
 
 #picket fence test
 @app.callback(Output('output-data-upload-pf', 'children'),
@@ -549,7 +611,7 @@ def update_output_pf(implementation, tollerance_pf, list_of_contents, list_of_na
         
         # Picket fence test analyzation
         if implementation == 'PicketFence':
-            output = analyze_picket_fence(files, list_of_names, implementation, tollerance_pf)
+            output.append(analyze_picket_fence(files, list_of_names, implementation, tollerance_pf))
         return output
 
     
