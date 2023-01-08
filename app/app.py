@@ -364,6 +364,11 @@ def analyze_star(files, list_of_names, implementation, radius, tolerance):
             ff_files.append(file_name)
     
     mystar = Starshot.from_multiple_images(ff_files)
+
+    #del images
+    for f in ff_files:
+        os.remove(f)
+
     try:
         mystar.analyze(radius=radius, tolerance=tolerance)
     except Exception as e:
