@@ -32,6 +32,8 @@ from datetime import datetime
 
 import os
 import glob
+import matplotlib
+matplotlib.pyplot.switch_backend('Agg') 
 
 trs_ptw_31016 = dict({
     10:   1,
@@ -304,47 +306,44 @@ def analyze_picket_fence(files, list_of_names, implementation, tollerance_pf):
     output = []
     clean_temp_folders()
     for l in range(len(files)):
-                f = files[l]
-                file_id = list_of_names[l]
-                file_name = str('./temp/'+str(l)+'_'+str(f.Modality)+'.dcm')
-                f.save_as(file_name)
-                pf = PicketFence(file_name)
-                pf.analyze(tolerance=tollerance_pf)
-                if pf.passed:
-                    style_f = style_passed
-                else:
-                    style_f = style_failed
-                output.append(html.Div(dbc.Row(dbc.Col(html.P('File {}'.format(file_id))),
-                                               style = style_f)))
-                image_name = str(str(l) + '_'+ str(implementation)+str(hash(datetime.now())) + '.png')
-                pf.save_analyzed_image('./assets/' +image_name)
+        f = files[l]
+        file_id = list_of_names[l]
+        file_name = str('./temp/'+str(l)+'_'+str(f.Modality)+str(hash(datetime.now()))+'.dcm')
+        f.save_as(file_name)
+        pf = PicketFence(file_name)
+        pf.analyze(tolerance=tollerance_pf)
+        if pf.passed:
+            style_f = style_passed
+        else:
+            style_f = style_failed
+        output.append(html.Div(dbc.Row(dbc.Col(html.P('File {}'.format(file_id))), style = style_f)))
+        image_name = str(str(l) + '_'+ str(implementation)+str(hash(datetime.now())) + '.png')
+        pf.save_analyzed_image('./assets/' +image_name)
                 
-                #creating the report
-                pf.publish_pdf('./assets/{}.pdf'.format(image_name))
-                #creating a output string
-                s = ''
-                for picket in pf.pickets: s = s + str(' {:2.2f}'.format(picket.dist2cax))
+        #creating the report
+        pf.publish_pdf('./assets/{}.pdf'.format(image_name))
+        #creating a output string
+        s = ''
+        for picket in pf.pickets: s = s + str(' {:2.2f}'.format(picket.dist2cax))
+        report_name = '{}.pdf'.format(image_name)
+        report_path = './assets/{}.pdf'.format(image_name)
+        results_f = html.Div([
+            html.P('{}% Passed'.format(pf.percent_passing)),
+            html.P('Study Date Time: {:%Y-%m-%d %H:%M}'.format(datetime.strptime(f.ContentDate+f.ContentTime, '%Y%m%d%H%M%S.%f'))),
+            html.P('Machine: {}'.format(f.RadiationMachineName)),
+            html.P('Gantry angle: {:3.3f}'.format(f.GantryAngle)),
+            html.P('Collimator angle: {:3.2f}'.format(f.BeamLimitingDeviceAngle)),
+            html.P('Median error: {:10.3f}'.format(pf.abs_median_error)),
+            html.P('Mean picket spacing: {:4.2f}'.format(pf.mean_picket_spacing)),
+            html.P('Picket offsets from CAX (mm): {}'.format(s)),
+            html.P('Max Error: {:2.4}mm on Picket: {}, Leaf: {}'.format(pf.max_error, pf.max_error_picket,pf.max_error_leaf)),
+            html.A('Download Report', download=report_name, href=report_path),], style = {'verticalAlign': 'top', 'margin-top':50})
                 
-                report_name = '{}.pdf'.format(image_name)
-                report_path = './assets/{}.pdf'.format(image_name)
-                results_f = html.Div([
-                    html.P('{}% Passed'.format(pf.percent_passing)),
-                    html.P('Study Date Time: {:%Y-%m-%d %H:%M}'.format(datetime.strptime(f.ContentDate+f.ContentTime, '%Y%m%d%H%M%S.%f'))),
-                    html.P('Machine: {}'.format(f.RadiationMachineName)),
-                    html.P('Gantry angle: {:3.3f}'.format(f.GantryAngle)),
-                    html.P('Collimator angle: {:3.2f}'.format(f.BeamLimitingDeviceAngle)),
-                    html.P('Median error: {:10.3f}'.format(pf.abs_median_error)),
-                    html.P('Mean picket spacing: {:4.2f}'.format(pf.mean_picket_spacing)),
-                    html.P('Picket offsets from CAX (mm): {}'.format(s)),
-                    html.P('Max Error: {:2.4}mm on Picket: {}, Leaf: {}'.format(pf.max_error, pf.max_error_picket,pf.max_error_leaf)),
-                    html.A('Download Report', download=report_name, href=report_path),
-                ], style = {'verticalAlign': 'top', 'margin-top':50})
-                
-                output.append(html.Div(dbc.Row([
-                    dbc.Col(html.Img(src=app.get_asset_url(image_name),)
-                                   , style = style_column), 
-                    dbc.Col(results_f, style = style_column),
-                ], style = {'display': 'inline-block'}), style = {'display': 'inline-block'}))
+        output.append(html.Div(dbc.Row([
+            dbc.Col(html.Img(src=app.get_asset_url(image_name),), style = style_column), 
+            dbc.Col(results_f, style = style_column),
+            ], style = {'display': 'inline-block'}), style = {'display': 'inline-block'}))
+    
     return output
 
 #function to analyse star test
@@ -385,14 +384,14 @@ def analyze_star(files, list_of_names, implementation, radius, tolerance):
         dbc.Col(html.Div(
             html.Img(
                 src=app.get_asset_url(name_left), 
-                style = {'display': 'inline-block',  'width': '90%', "border":"2px black solid"}
-            ), style = {'width':500}), style = {'display': 'inline-block',"border":"2px black solid"}),
+                style = {'display': 'inline-block',  'width': '90%',}
+            ), style = {'width':500}), style = {'display': 'inline-block',}),
         dbc.Col(html.Div(
             html.Img(
                 src=app.get_asset_url(name_right), 
-                 style = {'display': 'inline-block',  'width': '90%', "border":"2px black solid"}
-            ), style = {'width':500}), style = {'display': 'inline-block', "border":"2px black solid"}),
-    ], style = {'display': 'inline-block',"border":"2px black solid"}), style = {'display': 'inline-block', "border":"2px black solid"}))
+                 style = {'display': 'inline-block',  'width': '90%', }
+            ), style = {'width':500}), style = {'display': 'inline-block', }),
+    ], style = {'display': 'inline-block',}), style = {'display': 'inline-block', }))
     
     
     return output
@@ -598,7 +597,6 @@ def update_output_fs(implementation, leaf_first, leaf_last,list_of_contents, lis
               State('upload-data', 'last_modified'))
 def update_output_pf(implementation, tollerance_pf, list_of_contents, list_of_names, list_of_dates):
     if list_of_contents is not None:
-        output = []
         try:
             files = [
                 parse_contents(c, n, d) for c, n, d in
@@ -606,12 +604,13 @@ def update_output_pf(implementation, tollerance_pf, list_of_contents, list_of_na
         except Exception as e:
             print(e)
             return html.P('Error in uploading file ' + str(e))
-        amount_of_files = len(files)
-        output.append(html.P('%s files was uploaded successfully' %amount_of_files))
+        #amount_of_files = len(files)
+        #output.append(html.P('%s files was uploaded successfully' %amount_of_files))
         
         # Picket fence test analyzation
         if implementation == 'PicketFence':
-            output.append(analyze_picket_fence(files, list_of_names, implementation, tollerance_pf))
+            output = analyze_picket_fence(files, list_of_names, implementation, tollerance_pf)
+            print('we are ready to visualise')
         return output
 
     
